@@ -1,0 +1,5 @@
+"Record_ID","WiFi_MAC","Connection_Type","Signal_Level","Status","Timestamp","Latitude","Longitude"
+"001","A2:B3:C4:D5:E6:F7","Private","-45","Connected","18-07-2017 23:49:48","37.1433","-8.54521"
+"002","B4:C5:D6:E7:F8:99","Public","-60","Disconnected","18-07-2017 23:49:48","37.1433","-8.54521"
+"003","C6:D7:E8:F9:10:AB","Private","-80","Connected","19-07-2017 08:30:22","40.7128","-74.0060"
+"004","D8:E9:F0:11:22:BC","Public","-70","Connected","19-07-2017 09:15:12","34.0522","-118.2437"

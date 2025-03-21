@@ -1,4 +1,3 @@
-
 import pandas as pd
 
 def read_coordinates(file_path, include_timestamps=False):
@@ -11,21 +10,25 @@ def read_coordinates(file_path, include_timestamps=False):
     """
     try:
         df = pd.read_csv(file_path)
-
+        
+        # Normalizar os nomes das colunas para minúsculas e remover espaços extras
+        df.columns = df.columns.str.strip().str.lower()
+        
         # Verificar se as colunas necessárias existem
-        if 'Latitude' not in df or 'Longitude' not in df or 'Data' not in df or 'Hora' not in df:
-            print("Erro: O arquivo CSV não contém as colunas necessárias ('Latitude', 'Longitude', 'Data', 'Hora').")
+        required_columns = {'latitude', 'longitude', 'date', 'time'}
+        if not required_columns.issubset(df.columns):
+            print("❌ Erro: O CSV não contém as colunas esperadas ('Latitude', 'Longitude', 'Date', 'Time').")
             return [] if not include_timestamps else ([], [])
-
-        coordinates = list(zip(df['Latitude'], df['Longitude']))
-
+        
+        coordinates = list(zip(df['latitude'], df['longitude']))
+        
         if include_timestamps:
-            # Combinar 'Data' e 'Hora' em um único timestamp no formato ISO 8601
-            df['Timestamp'] = pd.to_datetime(df['Data'] + ' ' + df['Hora']).dt.strftime('%Y-%m-%dT%H:%M:%S')
-            timestamps = df['Timestamp'].tolist()
+            # Combinar 'date' e 'time' em um único timestamp no formato ISO 8601
+            df['timestamp'] = pd.to_datetime(df['date'] + ' ' + df['time'], dayfirst=True).dt.strftime('%Y-%m-%dT%H:%M:%S')
+            timestamps = df['timestamp'].tolist()
             print("Timestamps gerados:", timestamps)  # Debugging line
             return coordinates, timestamps
         return coordinates
     except Exception as e:
-        print(f"Erro ao ler o arquivo CSV: {e}")
+        print(f"❌ Erro ao ler o arquivo CSV: {e}")
         return [] if not include_timestamps else ([], [])

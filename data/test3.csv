@@ -1,0 +1,5 @@
+"ID","WiFi_Address","Location_Type","Access_Point_Name","Signal_Strength","Date","Time","Latitude","Longitude"
+"101","00:AA:BB:CC:DD:EE","Indoor","HomeRouter","-40","18-07-2017","23:49:48","37.1433","-8.54521"
+"102","11:BB:CC:DD:EE:FF","Outdoor","ParkWiFi","-55","18-07-2017","23:49:48","37.1433","-8.54521"
+"103","22:CC:DD:EE:FF:00","Indoor","OfficeWiFi","-60","19-07-2017","08:30:22","40.7128","-74.0060"
+"104","33:DD:EE:FF:00:11","Outdoor","CafeWifi","-65","19-07-2017","09:15:12","34.0522","-118.2437"

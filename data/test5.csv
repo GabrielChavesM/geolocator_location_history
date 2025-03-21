@@ -1,0 +1,5 @@
+"Device_ID","MAC_Address","WiFi_Name","Wifi_Strength_Level","Device_Type","Date_And_Time","Geo_Latitude","Geo_Longitude"
+"2010","E1:F2:G3:H4:I5:J6","SuperFastWiFi","-45","Laptop","18-07-2017 23:49:48","37.1433","-8.54521"
+"2011","F1:G2:H3:I4:J5:K7","SpeedyWiFi","-65","Phone","18-07-2017 23:49:48","37.1433","-8.54521"
+"2012","G1:H2:I3:J4:K5:L8","WorkWiFi","-75","Tablet","19-07-2017 08:30:22","40.7128","-74.0060"
+"2013","H1:I2:J3:K4:L5:M9","CafeWiFi","-50","Smartwatch","19-07-2017 09:15:12","34.0522","-118.2437"
