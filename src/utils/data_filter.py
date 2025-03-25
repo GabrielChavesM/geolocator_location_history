@@ -62,20 +62,20 @@ def clean_and_filter_data(input_file: str, output_file: str, min_interval_second
         # Ler o arquivo CSV
         df = pd.read_csv(input_file)
 
-        # Identificar os nomes das colunas relacionadas à latitude, longitude, data e hora
-        lat_col = next((col for col in df.columns if 'lat' in col.lower()), None)
-        lon_col = next((col for col in df.columns if 'lon' in col.lower()), None)
-        date_col = next((col for col in df.columns if 'date' in col.lower()), None)
-        time_col = next((col for col in df.columns if 'hora' in col.lower() or 'time' in col.lower()), None)
+        # Verificar se o CSV contém as colunas essenciais (independente de maiúsculas/minúsculas)
+        required_columns = ['latitude', 'longitude', 'date', 'time']
+        df_columns_lower = [col.lower() for col in df.columns]
+        missing_columns = [col for col in required_columns if col not in df_columns_lower]
 
-        if not all([lat_col, lon_col, date_col, time_col]):
-            print("Erro: Colunas essenciais não encontradas.")
+        if missing_columns:
+            print(f"Erro: As seguintes colunas essenciais estão ausentes no arquivo CSV: {', '.join(missing_columns)}")
             return
 
-        # Verificar se a coluna 'dateTime' existe e separar 'Date' e 'Time' caso necessário
-        if 'dateTime' in df.columns:
-            df[['Date', 'Time']] = df['dateTime'].str.split(' at ', expand=True)
-            date_col, time_col = 'Date', 'Time'
+        # Mapear os nomes reais das colunas (considerando maiúsculas/minúsculas)
+        lat_col = next(col for col in df.columns if col.lower() == 'latitude')
+        lon_col = next(col for col in df.columns if col.lower() == 'longitude')
+        date_col = next(col for col in df.columns if col.lower() == 'date')
+        time_col = next(col for col in df.columns if col.lower() == 'time')
 
         # Usar regex para normalizar os separadores entre a data e hora
         def normalize_date_format(date_str):
@@ -90,7 +90,7 @@ def clean_and_filter_data(input_file: str, output_file: str, min_interval_second
         # Converter para o formato de timestamp
         df['Timestamp'] = pd.to_datetime(df['Normalized_DateTime'], format='%d %m %Y %H %M %S')
 
-        # Ordenar os dados primeiro por Date e Time
+        # Ordenar os dados primeiro por Timestamp
         df = df.sort_values(by=['Timestamp'])
 
         # Remover duplicatas baseadas em Date e Time
