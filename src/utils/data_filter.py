@@ -1,7 +1,8 @@
 import os
 import pandas as pd
-from geopy.distance import geodesic
-import re  # Importando o módulo de expressões regulares
+import re
+from datetime import datetime, timedelta
+from math import radians, sin, cos, sqrt, atan2
 
 def list_csv_files(directory="data"):
     """
@@ -32,123 +33,135 @@ def choose_csv_file():
         except ValueError:
             print("Entrada inválida. Digite um número correspondente a um arquivo.")
 
-def calculate_speed(coord1, coord2, time_diff_seconds):
+def detect_date_format(value):
     """
-    Calcula a velocidade entre dois pontos geográficos em km/h e m/s.
+    Detecta o formato de uma data e retorna True se for válido.
     """
-    if time_diff_seconds == 0:
-        return 0, 0  # Retorna zero para ambos caso o tempo seja zero
-    
-    # Distância em quilômetros
-    distance_km = geodesic(coord1, coord2).kilometers
-    
-    # Distância em metros
-    distance_m = distance_km * 1000
-    
-    # Velocidade em km/h
-    speed_kmh = (distance_km / time_diff_seconds) * 3600
-    
-    # Velocidade em m/s
-    speed_ms = distance_m / time_diff_seconds
-    
-    return round(speed_kmh, 2), round(speed_ms, 2)  # Retorna ambas as velocidades com duas casas decimais
+    date_formats = ["%d-%m-%Y", "%Y-%m-%d", "%m-%d-%Y"]
+    for date_format in date_formats:
+        try:
+            datetime.strptime(value, date_format)
+            return True
+        except ValueError:
+            continue
+    return False
 
-def clean_and_filter_data(input_file: str, output_file: str, min_interval_seconds: int = 10):
+def detect_time_format(value):
     """
-    Limpa os dados removendo duplicatas e filtrando por intervalo de tempo mínimo entre pontos.
-    Calcula a velocidade entre pontos consecutivos e inclui essa informação.
+    Detecta se o valor é um horário válido no formato HH:MM:SS.
     """
     try:
-        # Ler o arquivo CSV
-        df = pd.read_csv(input_file)
+        datetime.strptime(value, "%H:%M:%S")
+        return True
+    except ValueError:
+        return False
 
-        # Verificar se o CSV contém as colunas essenciais (independente de maiúsculas/minúsculas)
-        required_columns = ['latitude', 'longitude', 'date', 'time']
-        df_columns_lower = [col.lower() for col in df.columns]
-        missing_columns = [col for col in required_columns if col not in df_columns_lower]
+def haversine(lat1, lon1, lat2, lon2):
+    """
+    Calcula a distância entre dois pontos geográficos usando a fórmula de Haversine.
+    Retorna a distância em metros.
+    """
+    R = 6371000  # Raio da Terra em metros
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
 
-        if missing_columns:
-            print(f"Erro: As seguintes colunas essenciais estão ausentes no arquivo CSV: {', '.join(missing_columns)}")
+def process_csv(file_path):
+    """
+    Processa o CSV para garantir que possui as colunas corretas.
+    """
+    df = pd.read_csv(file_path)
+    
+    # Normalizar nomes de colunas
+    df.columns = [col.strip().lower() for col in df.columns]
+    
+    expected_columns = {"latitude", "longitude", "date", "time"}
+    current_columns = set(df.columns)
+    
+    if expected_columns.issubset(current_columns):
+        df = df[["latitude", "longitude", "date", "time"]]
+    else:
+        lat_col = next((col for col in df.columns if "lat" in col), None)
+        lon_col = next((col for col in df.columns if "lon" in col), None)
+        
+        sample_row = df.iloc[0]
+        date_col, time_col = None, None
+        
+        for col in df.columns:
+            if detect_date_format(str(sample_row[col])):
+                date_col = col
+            elif detect_time_format(str(sample_row[col])):
+                time_col = col
+        
+        if date_col is None or time_col is None:
+            for col in df.columns:
+                match = re.match(r"(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})[^\d]+(\d{2}:\d{2}:\d{2})", str(sample_row[col]))
+                if match:
+                    df["date"] = df[col].apply(lambda x: re.match(r"(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})", str(x)).group(1))
+                    df["time"] = df[col].apply(lambda x: re.match(r".*?(\d{2}:\d{2}:\d{2})", str(x)).group(1))
+                    date_col, time_col = "date", "time"
+                    break
+        
+        if not all([lat_col, lon_col, date_col, time_col]):
+            print("Erro: Não foi possível identificar todas as colunas corretamente.")
             return
+        
+        df = df.rename(columns={lat_col: "latitude", lon_col: "longitude", date_col: "date", time_col: "time"})
+        df = df[["latitude", "longitude", "date", "time"]]
+    
+    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"], errors='coerce')
+    df = df.dropna(subset=["datetime"])
+    df = df.sort_values(by="datetime")
+    
+    filtered_rows = []
+    last_time = None
+    
+    for _, row in df.iterrows():
+        if last_time is None or (row["datetime"] - last_time) >= timedelta(seconds=10):
+            filtered_rows.append(row)
+            last_time = row["datetime"]
+    
+    df = pd.DataFrame(filtered_rows)[["latitude", "longitude", "date", "time"]]
+    
+    # Calcular a distância entre os pontos consecutivos
+    distances = [0]  # A primeira linha não tem distância anterior
+    times = [0]  # A primeira linha não tem tempo anterior
+    for i in range(1, len(df)):
+        lat1, lon1 = df.iloc[i - 1][["latitude", "longitude"]]
+        lat2, lon2 = df.iloc[i][["latitude", "longitude"]]
+        distance = haversine(lat1, lon1, lat2, lon2)
+        distances.append(distance)
+        
+        # Calcular a diferença de tempo em segundos
+        time_diff = (pd.to_datetime(df.iloc[i]["time"]) - pd.to_datetime(df.iloc[i - 1]["time"])).total_seconds()
+        times.append(time_diff if time_diff > 0 else 0)  # Evitar divisões por zero
 
-        # Mapear os nomes reais das colunas (considerando maiúsculas/minúsculas)
-        lat_col = next(col for col in df.columns if col.lower() == 'latitude')
-        lon_col = next(col for col in df.columns if col.lower() == 'longitude')
-        date_col = next(col for col in df.columns if col.lower() == 'date')
-        time_col = next(col for col in df.columns if col.lower() == 'time')
+    df["distance_in_m"] = distances  # Adicionar a coluna "distance"
+    
+    # Calcular a velocidade em m/s e km/h
+    df["speed_m/s"] = [dist / time if time > 0 else 0 for dist, time in zip(distances, times)]
+    df["speed_kmh"] = df["speed_m/s"] * 3.6  # Converter m/s para km/h
+    
+    # Arredondar os valores das colunas para 2 casas decimais
+    df["distance_in_m"] = df["distance_in_m"].round(2)
+    df["speed_m/s"] = df["speed_m/s"].round(2)
+    df["speed_kmh"] = df["speed_kmh"].round(2)
+    
+    output_file = os.path.join("data", "cleaned_" + os.path.basename(file_path))
+    df.to_csv(output_file, index=False)
+    
+    print(f"\n✅ CSV processado e salvo como: {output_file}")
 
-        # Usar regex para normalizar os separadores entre a data e hora
-        def normalize_date_format(date_str):
-            # Substituir qualquer coisa entre a data e hora (palavras como 'at', 'a', 'nas horas', ou espaços)
-            # Substitui qualquer texto ou separador por um espaço
-            return re.sub(r'[^0-9]+', ' ', date_str)
-
-        # Aplicar a função de normalização na coluna de data e hora
-        df['Normalized_DateTime'] = df[date_col] + ' ' + df[time_col]
-        df['Normalized_DateTime'] = df['Normalized_DateTime'].apply(normalize_date_format)
-
-        # Converter para o formato de timestamp
-        df['Timestamp'] = pd.to_datetime(df['Normalized_DateTime'], format='%d %m %Y %H %M %S')
-
-        # Ordenar os dados primeiro por Timestamp
-        df = df.sort_values(by=['Timestamp'])
-
-        # Remover duplicatas baseadas em Date e Time
-        df = df.drop_duplicates(subset=[date_col, time_col], keep='first')
-
-        # Filtrar os dados para garantir o intervalo mínimo de tempo
-        filtered_rows = [df.iloc[0]]  # Sempre incluir o primeiro ponto
-        velocities_kmh = [0]  # A velocidade do primeiro ponto é zero
-        velocities_ms = [0]   # A velocidade em m/s do primeiro ponto é zero
-        last_timestamp = df.iloc[0]['Timestamp']
-        last_coord = (df.iloc[0][lat_col], df.iloc[0][lon_col])
-
-        for _, row in df.iterrows():
-            current_timestamp = row['Timestamp']
-            current_coord = (row[lat_col], row[lon_col])
-            time_diff = (current_timestamp - last_timestamp).total_seconds()
-
-            if time_diff >= min_interval_seconds:
-                # Calcular a velocidade
-                speed_kmh, speed_ms = calculate_speed(last_coord, current_coord, time_diff)
-                velocities_kmh.append(speed_kmh)
-                velocities_ms.append(speed_ms)
-                filtered_rows.append(row)
-                last_timestamp = current_timestamp
-                last_coord = current_coord
-
-        # Criar um novo DataFrame com os dados filtrados
-        filtered_df = pd.DataFrame(filtered_rows)
-
-        # Adicionar as colunas de velocidade
-        filtered_df['velocity_km/h'] = velocities_kmh
-        filtered_df['velocity_m/s'] = velocities_ms
-
-        # Manter apenas as colunas necessárias na ordem correta
-        filtered_df = filtered_df[[lat_col, lon_col, date_col, time_col, 'velocity_km/h', 'velocity_m/s']]
-
-        # Salvar os dados limpos em um novo arquivo CSV
-        filtered_df.to_csv(output_file, index=False)
-
-        print(f"\n✅ Dados limpos e salvos em: {output_file}")
-    except Exception as e:
-        print(f"❌ Ocorreu um erro: {e}")
+# TODO Calcular a distância total percorrida (somando a distância de linha a linha)
+# e o tempo total gasto (última hora - primeira hora)
 
 def main():
-    # Permitir ao usuário escolher o arquivo CSV
-    input_file = choose_csv_file()
-    if not input_file:
-        return
-
-    # Gerar o nome do arquivo de saída
-    output_file = os.path.join("data", f"cleaned_filtered_{os.path.basename(input_file)}")
-
-    # Limpar e filtrar os dados
-    clean_and_filter_data(
-        input_file=input_file,
-        output_file=output_file,
-        min_interval_seconds=10
-    )
+    file_path = choose_csv_file()
+    if file_path:
+        process_csv(file_path)
 
 if __name__ == "__main__":
     main()
