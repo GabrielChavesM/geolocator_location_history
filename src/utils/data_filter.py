@@ -149,6 +149,31 @@ def process_csv(file_path):
     df["distance_in_m"] = df["distance_in_m"].round(2)
     df["speed_m/s"] = df["speed_m/s"].round(2)
     df["speed_kmh"] = df["speed_kmh"].round(2)
+    # Calcular a distância total acumulada e arredonda para 2 casas decimais
+    df["total_distance"] = df["distance_in_m"].cumsum()
+    df["total_distance"] = df["total_distance"].round(2)
+
+    # Criar a coluna "datetime" combinando "date" e "time"
+    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"], errors="coerce", dayfirst=True)
+
+    # Remover linhas com valores inválidos na coluna "datetime"
+    if df["datetime"].isnull().any():
+        print("⚠️ Algumas linhas possuem valores inválidos em 'datetime' e serão removidas.")
+        df = df.dropna(subset=["datetime"])
+
+    # Ordenar o DataFrame pela coluna "datetime"
+    df = df.sort_values(by="datetime").reset_index(drop=True)
+
+    # Calcular o tempo acumulado desde o início até a linha atual manualmente
+    start_time = df["datetime"].iloc[0]
+    time_needed = []
+    for current_time in df["datetime"]:
+        elapsed_seconds = int((current_time - start_time).total_seconds())
+        formatted_time = str(timedelta(seconds=elapsed_seconds))
+        time_needed.append(formatted_time)
+
+    # Adicionar a coluna "time_needed" ao DataFrame
+    df["time_needed"] = time_needed
     
     output_file = os.path.join("data", "cleaned_" + os.path.basename(file_path))
     df.to_csv(output_file, index=False)
