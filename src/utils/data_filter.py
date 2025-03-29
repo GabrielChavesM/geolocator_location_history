@@ -69,119 +69,140 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
+def format_time(seconds):
+    """
+    Formata o tempo em segundos para uma string legível, dependendo da magnitude:
+    - Segundos até 1 minuto
+    - Minutos até 1 hora
+    - Horas até 1 dia
+    - Dias, horas, minutos e segundos para tempos maiores que 1 dia
+    """
+    if seconds < 60:
+        return f"{seconds} segundos"
+    elif seconds < 3600:
+        minutes, seconds = divmod(seconds, 60)
+        return f"{minutes} minutos, {seconds} segundos"
+    elif seconds < 86400:
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours} horas, {minutes} minutos, {seconds} segundos"
+    else:
+        days, remainder = divmod(seconds, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{days} dias, {hours} horas, {minutes} minutos, {seconds} segundos"
+
 def process_csv(file_path):
     """
-    Processa o CSV para garantir que possui as colunas corretas.
+    Processa o CSV para identificar corretamente as colunas necessárias e calcular distância, tempo e velocidade.
     """
     df = pd.read_csv(file_path)
     
-    # Normalizar nomes de colunas
+    # Normalizar nomes de colunas para minúsculas e remover espaços
     df.columns = [col.strip().lower() for col in df.columns]
-    
-    expected_columns = {"latitude", "longitude", "date", "time"}
-    current_columns = set(df.columns)
-    
-    if expected_columns.issubset(current_columns):
-        df = df[["latitude", "longitude", "date", "time"]]
-    else:
-        lat_col = next((col for col in df.columns if "lat" in col), None)
-        lon_col = next((col for col in df.columns if "lon" in col), None)
-        
-        sample_row = df.iloc[0]
-        date_col, time_col = None, None
-        
+
+    # Mapear nomes de colunas possíveis
+    col_map = {
+        "latitude": ["latitude", "lat"],
+        "longitude": ["longitude", "lon"],
+        "date": ["date"],
+        "time": ["time"],
+        "datetime": ["datetime", "timestamp", "date_time", "dateTime"]
+    }
+
+    mapped_columns = {}
+
+    for key, possible_names in col_map.items():
         for col in df.columns:
-            if detect_date_format(str(sample_row[col])):
-                date_col = col
-            elif detect_time_format(str(sample_row[col])):
-                time_col = col
-        
-        if date_col is None or time_col is None:
-            for col in df.columns:
-                match = re.match(r"(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})[^\d]+(\d{2}:\d{2}:\d{2})", str(sample_row[col]))
-                if match:
-                    df["date"] = df[col].apply(lambda x: re.match(r"(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})", str(x)).group(1))
-                    df["time"] = df[col].apply(lambda x: re.match(r".*?(\d{2}:\d{2}:\d{2})", str(x)).group(1))
-                    date_col, time_col = "date", "time"
-                    break
-        
-        if not all([lat_col, lon_col, date_col, time_col]):
-            print("Erro: Não foi possível identificar todas as colunas corretamente.")
+            if col in possible_names:
+                mapped_columns[key] = col
+                break
+
+    # Verificar se temos data e hora separadas ou juntas
+    if "datetime" in mapped_columns:
+        df["datetime"] = pd.to_datetime(df[mapped_columns["datetime"]], errors="coerce")
+        df["date"] = df["datetime"].dt.strftime("%Y-%m-%d")
+        df["time"] = df["datetime"].dt.strftime("%H:%M:%S")
+    else:
+        if "date" in mapped_columns and "time" in mapped_columns:
+            df["datetime"] = pd.to_datetime(df[mapped_columns["date"]] + " " + df[mapped_columns["time"]], errors="coerce")
+        else:
+            print("Erro: Não foi possível identificar corretamente data e hora.")
             return
-        
-        df = df.rename(columns={lat_col: "latitude", lon_col: "longitude", date_col: "date", time_col: "time"})
-        df = df[["latitude", "longitude", "date", "time"]]
-    
-    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"], errors='coerce')
-    df = df.dropna(subset=["datetime"])
-    df = df.sort_values(by="datetime")
-    
+
+    # Garantir que as colunas latitude e longitude estejam presentes
+    if "latitude" not in mapped_columns or "longitude" not in mapped_columns:
+        print("Erro: Não foi possível identificar colunas de latitude e longitude.")
+        return
+
+    df = df.rename(columns={
+        mapped_columns["latitude"]: "latitude",
+        mapped_columns["longitude"]: "longitude"
+    })
+
+    df = df[["latitude", "longitude", "date", "time", "datetime"]].dropna()
+
+    # Ordenar pela data/hora
+    df = df.sort_values(by="datetime").reset_index(drop=True)
+
+    # Remover duplicados, mantendo apenas a primeira ocorrência
+    df = df.drop_duplicates(subset=["latitude", "longitude"], keep="first").reset_index(drop=True)
+
+    # Filtrar linhas com intervalos de tempo menores que 10 segundos
     filtered_rows = []
     last_time = None
-    
+
     for _, row in df.iterrows():
-        if last_time is None or (row["datetime"] - last_time) >= timedelta(seconds=10):
+        if last_time is None or (row["datetime"] - last_time).total_seconds() >= 10:
             filtered_rows.append(row)
             last_time = row["datetime"]
-    
-    df = pd.DataFrame(filtered_rows)[["latitude", "longitude", "date", "time"]]
-    
-    # Calcular a distância entre os pontos consecutivos
+
+    df = pd.DataFrame(filtered_rows)
+
+    # Calcular a diferença de tempo e distância entre as linhas consecutivas
+    time_distances = [0]  # A primeira linha não tem diferença de tempo anterior
     distances = [0]  # A primeira linha não tem distância anterior
-    times = [0]  # A primeira linha não tem tempo anterior
     for i in range(1, len(df)):
+        # Calcular a diferença de tempo em segundos
+        time_diff = (df.iloc[i]["datetime"] - df.iloc[i - 1]["datetime"]).total_seconds()
+        time_distances.append(time_diff)
+
+        # Calcular a distância entre os pontos geográficos
         lat1, lon1 = df.iloc[i - 1][["latitude", "longitude"]]
         lat2, lon2 = df.iloc[i][["latitude", "longitude"]]
         distance = haversine(lat1, lon1, lat2, lon2)
         distances.append(distance)
-        
-        # Calcular a diferença de tempo em segundos
-        time_diff = (pd.to_datetime(df.iloc[i]["time"]) - pd.to_datetime(df.iloc[i - 1]["time"])).total_seconds()
-        times.append(time_diff if time_diff > 0 else 0)  # Evitar divisões por zero
 
-    df["distance_in_m"] = distances  # Adicionar a coluna "distance"
-    
-    # Calcular a velocidade em m/s e km/h
-    df["speed_m/s"] = [dist / time if time > 0 else 0 for dist, time in zip(distances, times)]
-    df["speed_kmh"] = df["speed_m/s"] * 3.6  # Converter m/s para km/h
-    
-    # Arredondar os valores das colunas para 2 casas decimais
-    df["distance_in_m"] = df["distance_in_m"].round(2)
-    df["speed_m/s"] = df["speed_m/s"].round(2)
-    df["speed_kmh"] = df["speed_kmh"].round(2)
-    # Calcular a distância total acumulada e arredonda para 2 casas decimais
+    # Adicionar as colunas "time_distance" e "distance_in_m" ao DataFrame
+    df["time_distance"] = time_distances
+    df["distance_in_m"] = distances
+
+    # Calcular velocidade
+    df["speed_m/s"] = [round(dist / time, 2) if time > 0 else 0 for dist, time in zip(distances, time_distances)]
+    df["speed_kmh"] = df["speed_m/s"].apply(lambda x: round(x * 3.6, 2))
+
+    # Adicionar coluna formatada de tempo acumulado
+    df["formatted_time"] = df["time_distance"].apply(lambda x: format_time(int(x)))
+
+    # Calcular o tempo total acumulado
+    total_time_seconds = 0
+    total_time_formatted = []
+    for time in df["time_distance"]:
+        total_time_seconds += time
+        total_time_formatted.append(format_time(int(total_time_seconds)))
+
+    df["total_time"] = total_time_formatted
+
+    # Calcular a distância total acumulada
     df["total_distance"] = df["distance_in_m"].cumsum()
-    df["total_distance"] = df["total_distance"].round(2)
 
-    # Criar a coluna "datetime" combinando "date" e "time"
-    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"], errors="coerce", dayfirst=True)
+    # Remover as colunas "datetime" e "time_distance" antes de salvar
+    df = df.drop(columns=["datetime", "time_distance"])
 
-    # Remover linhas com valores inválidos na coluna "datetime"
-    if df["datetime"].isnull().any():
-        print("⚠️ Algumas linhas possuem valores inválidos em 'datetime' e serão removidas.")
-        df = df.dropna(subset=["datetime"])
-
-    # Ordenar o DataFrame pela coluna "datetime"
-    df = df.sort_values(by="datetime").reset_index(drop=True)
-
-    # Calcular o tempo acumulado desde o início até a linha atual manualmente
-    start_time = df["datetime"].iloc[0]
-    time_needed = []
-    for current_time in df["datetime"]:
-        elapsed_seconds = int((current_time - start_time).total_seconds())
-        formatted_time = str(timedelta(seconds=elapsed_seconds))
-        time_needed.append(formatted_time)
-
-    # Adicionar a coluna "time_needed" ao DataFrame
-    df["time_needed"] = time_needed
-    
+    # Salvar CSV limpo
     output_file = os.path.join("data", "cleaned_" + os.path.basename(file_path))
     df.to_csv(output_file, index=False)
-    
     print(f"\n✅ CSV processado e salvo como: {output_file}")
-
-# TODO Calcular a distância total percorrida (somando a distância de linha a linha)
-# e o tempo total gasto (última hora - primeira hora)
 
 def main():
     file_path = choose_csv_file()
@@ -190,3 +211,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# TODO 
+# 4. Infiram o meio de transporte utilizado em cada um deles.
+# Tarefa 4, 5
