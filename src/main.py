@@ -1,100 +1,65 @@
 import os
-import pandas as pd
-import folium
-from utils.file_reader import read_coordinates
-import time
-from folium.plugins import TimestampedGeoJson
 
-def list_csv_files(directory="data"):
+def list_available_scripts(directory="./src/utils"):
     """
-    Lista todos os arquivos CSV dentro do diretório especificado.
+    Lista os scripts Python disponíveis no diretório especificado.
     """
-    return [f for f in os.listdir(directory) if f.endswith(".csv")]
+    os.system("clear")
+    scripts = {}
+    try:
+        # Lista todos os arquivos no diretório e filtra os .py
+        files = [f for f in os.listdir(directory) if f.endswith(".py")]
+        for i, file in enumerate(files, start=1):
+            scripts[i] = os.path.join(directory, file)  # Mapeia o número ao caminho do arquivo
+        # Se o ficheiro for o "file_reader.py", remove-o da lista
+        if "file_reader.py" in scripts.values():
+            scripts.pop(list(scripts.keys())[list(scripts.values()).index("file_reader.py")])
 
-def choose_csv_file():
-    """
-    Permite ao usuário escolher um arquivo CSV disponível na pasta "data".
-    """
-    csv_files = list_csv_files()
-    if not csv_files:
-        print("Nenhum arquivo CSV encontrado na pasta 'data'.")
-        return None
+    except FileNotFoundError:
+        print(f"O diretório {directory} não foi encontrado.")
     
-    print("Arquivos disponíveis:")
-    for i, file in enumerate(csv_files, start=1):
-        print(f"{i}. {file}")
-    
-    while True:
-        try:
-            choice = int(input("Escolha o número do arquivo desejado: "))
-            if 1 <= choice <= len(csv_files):
-                return os.path.join("data", csv_files[choice - 1])
-            else:
-                print("Escolha inválida. Tente novamente.")
-        except ValueError:
-            print("Entrada inválida. Digite um número correspondente a um arquivo.")
+    return scripts
 
-def create_timelapse(coordinates, timestamps, output_file='maps/timelapse_map.html'):
+def execute_script(script_path):
     """
-    Cria um timelapse mostrando os caminhos do utilizador ponto a ponto pelo horário.
+    Executa o script escolhido pelo usuário, dado o caminho correto do script.
     """
-    if not coordinates or not timestamps:
-        print("Nenhum dado disponível para criar o timelapse.")
-        return
-
-    # Criar a pasta "maps" se não existir
-    os.makedirs("maps", exist_ok=True)
-
-    map_ = folium.Map(location=coordinates[0], zoom_start=12)
-
-    features = [{
-        "type": "Feature",
-        "geometry": {
-            "type": "LineString",
-            "coordinates": [[lon, lat] for lat, lon in coordinates]
-        },
-        "properties": {
-            "times": timestamps,
-            "popup": "Caminho do utilizador"
-        }
-    }]
-
-    timestamped_geojson = TimestampedGeoJson({
-        "type": "FeatureCollection",
-        "features": features
-    }, period="PT1S", add_last_point=True)
-
-    timestamped_geojson.add_to(map_)
-    map_.save(output_file)
-    print(f"Timelapse completo e salvo como '{output_file}'.")
+    # Executa o script no caminho fornecido
+    os.system(f"python3 {script_path}")
 
 def main():
-    csv_file = choose_csv_file()
-    if not csv_file:
-        return
-    
-    coordinates, timestamps = read_coordinates(csv_file, include_timestamps=True)
-    
-    if coordinates:
-        avg_lat = sum(lat for lat, _ in coordinates) / len(coordinates)
-        avg_lon = sum(lon for _, lon in coordinates) / len(coordinates)
-
-        # Criar a pasta "maps" se não existir
-        os.makedirs("maps", exist_ok=True)
-
-        # Criar o mapa estático
-        map_ = folium.Map(location=[avg_lat, avg_lon], zoom_start=12)
-        for lat, lon in coordinates:
-            folium.CircleMarker(location=[lat, lon], radius=5, color='blue').add_to(map_)
-
-        static_map_path = os.path.join("maps", "location_map.html")
-        map_.save(static_map_path)
-        print(f"Mapa estático criado e salvo como '{static_map_path}'.")
-
-        # Criar o timelapse
-        create_timelapse(coordinates, timestamps)
-    else:
-        print("Nenhuma coordenada encontrada.")
+    while True:
+        print("\nSelecione um dos scripts para executar:")
+        scripts = list_available_scripts()
+        
+        # Verificar se scripts foram encontrados
+        if not scripts:
+            print("Nenhum script encontrado no diretório 'utils'.")
+            break
+        
+        # Listar os scripts disponíveis
+        for i, script_path in scripts.items():
+            script_name = os.path.basename(script_path)
+            print(f"{i}. {script_name}")
+        
+        print("0. Sair")
+        
+        choice = input("\nDigite o número da opção desejada: ")
+        
+        if choice == "0":
+            print("Saindo...")
+            break
+        
+        try:
+            choice = int(choice)
+            if choice in scripts:
+                script_path = scripts[choice]
+                print(f"\nExecutando '{os.path.basename(script_path)}'...\n")
+                execute_script(script_path)
+            else:
+                print("Opção inválida. Tente novamente.")
+        except ValueError:
+            print("Entrada inválida. Digite um número correspondente a uma opção.")
 
 if __name__ == "__main__":
     main()

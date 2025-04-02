@@ -48,7 +48,7 @@ def speed_graph():
   """
   csv_path = choose_csv_file() # chama a função para escolher o CSV
   if csv_path is None:
-    return # Evita erro caso p arquivo não seja selecionado
+    return # Evita erro caso o arquivo não seja selecionado
 
   df = pd.read_csv(csv_path) # Lê o CSV escolhido
   # Remove espaços extras nos nomes das colunas
@@ -101,8 +101,8 @@ def speed_graph():
   max_speed = df["speed_kmh"].max()
 
   for index, row in df.iterrows(): # itera sobre as linhas do DataFrame
-     # Filtra as velocidades acima de 95% da máxima
-     if row["speed_kmh"] >= max_speed * 0.50: # Modificado para 0.75 (ou seja, 75% do máximo)
+     # Filtra as velocidades acima de 50% da máxima
+     if row["speed_kmh"] >= max_speed * 0.50: # Modificado para 0.50 (ou seja, 50% do máximo)
         folium.CircleMarker(
            location=[row["latitude"], row["longitude"]],
            radius=5,
@@ -132,8 +132,8 @@ def speed_graph():
   min_speed = df["speed_kmh"].min()
 
   for index, row in df.iterrows(): # itera sobre as linhas do DataFrame
-    # Filtra as velocidades abaixo de 25% da mínima
-    if row["speed_kmh"] <= min_speed * 1.50:  # Modificado para 1.25 (ou seja, 125% da mínima)
+    # Filtra as velocidades abaixo de 50% da mínima
+    if row["speed_kmh"] <= min_speed * 1.50:  # Modificado para 1.50 (ou seja, 150% da mínima)
         folium.CircleMarker(
           location=[row["latitude"], row["longitude"]],
           radius=5,
@@ -144,7 +144,6 @@ def speed_graph():
           popup=f"Velocidade: {row['speed_kmh']} km/h"
         ).add_to(folium_map)
 
-
   # Adiciona HeatMap para mostrar as áreas com baixas velocidades
   heat_data = [[row["latitude"], row["longitude"], row["speed_kmh"]]
               for index, row in df.iterrows()]
@@ -152,9 +151,6 @@ def speed_graph():
 
   folium_map.save("mapa_baixa_velocidade.html")
   print("Mapa salvo como 'mapa_baixa_velocidade.html'.")
-
-
-      
 
 # Chama a função para gerar o gráfico
 speed_graph()
