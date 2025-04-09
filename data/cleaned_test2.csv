@@ -1,4 +1,0 @@
-latitude,longitude,date,time,distance_in_m,speed_m/s,speed_kmh,formatted_time,total_time,total_distance
-37.1433,-8.54521,2017-07-18,23:49:48,0.0,0.0,0.0,0 segundos,0 segundos,0.0
-40.7128,-74.006,2017-07-19,08:30:22,5543109.915857293,177.47,638.89,"8 horas, 40 minutos, 34 segundos","8 horas, 40 minutos, 34 segundos",5543109.915857293
-34.0522,-118.2437,2017-07-19,09:15:12,3935746.254609723,1463.1,5267.16,"44 minutos, 50 segundos","9 horas, 25 minutos, 24 segundos",9478856.170467015
