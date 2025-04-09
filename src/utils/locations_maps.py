@@ -1,48 +1,16 @@
 import os
-import pandas as pd
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
 import folium
-from file_reader import read_coordinates
-import time
 from folium.plugins import TimestampedGeoJson
-
-def list_csv_files(directory="data"):
-    """
-    Lista todos os arquivos CSV dentro do diretório especificado.
-    """
-    return [f for f in os.listdir(directory) if f.endswith(".csv")]
-
-def choose_csv_file():
-    """
-    Permite ao usuário escolher um arquivo CSV disponível na pasta "data".
-    """
-    csv_files = list_csv_files()
-    if not csv_files:
-        print("Nenhum arquivo CSV encontrado na pasta 'data'.")
-        return None
-    
-    print("Arquivos disponíveis:")
-    for i, file in enumerate(csv_files, start=1):
-        print(f"{i}. {file}")
-    
-    while True:
-        try:
-            choice = int(input("Escolha o número do arquivo desejado: "))
-            if 1 <= choice <= len(csv_files):
-                return os.path.join("data", csv_files[choice - 1])
-            else:
-                print("Escolha inválida. Tente novamente.")
-        except ValueError:
-            print("Entrada inválida. Digite um número correspondente a um arquivo.")
+from file_reader import read_coordinates
+import webbrowser  # Importando para abrir o arquivo no navegador
 
 def create_timelapse(coordinates, timestamps, output_file='maps/timelapse_map.html'):
-    """
-    Cria um timelapse mostrando os caminhos do utilizador ponto a ponto pelo horário.
-    """
     if not coordinates or not timestamps:
-        print("Nenhum dado disponível para criar o timelapse.")
+        messagebox.showwarning("Aviso", "Nenhum dado disponível para criar o timelapse.")
         return
 
-    # Criar a pasta "maps" se não existir
     os.makedirs("maps", exist_ok=True)
 
     map_ = folium.Map(location=coordinates[0], zoom_start=12)
@@ -66,35 +34,69 @@ def create_timelapse(coordinates, timestamps, output_file='maps/timelapse_map.ht
 
     timestamped_geojson.add_to(map_)
     map_.save(output_file)
-    print(f"Timelapse completo e salvo como '{output_file}'.")
 
-def main():
-    csv_file = choose_csv_file()
-    if not csv_file:
+    # Abrir o arquivo gerado no navegador
+    webbrowser.open(f"file://{os.path.abspath(output_file)}")  # Abre no navegador
+
+def create_static_map(coordinates, output_file='maps/location_map.html'):
+    if not coordinates:
+        messagebox.showwarning("Aviso", "Nenhuma coordenada disponível para o mapa.")
         return
-    
-    coordinates, timestamps = read_coordinates(csv_file, include_timestamps=True)
-    
-    if coordinates:
-        avg_lat = sum(lat for lat, _ in coordinates) / len(coordinates)
-        avg_lon = sum(lon for _, lon in coordinates) / len(coordinates)
 
-        # Criar a pasta "maps" se não existir
-        os.makedirs("maps", exist_ok=True)
+    avg_lat = sum(lat for lat, _ in coordinates) / len(coordinates)
+    avg_lon = sum(lon for _, lon in coordinates) / len(coordinates)
 
-        # Criar o mapa estático
-        map_ = folium.Map(location=[avg_lat, avg_lon], zoom_start=12)
-        for lat, lon in coordinates:
-            folium.CircleMarker(location=[lat, lon], radius=5, color='blue').add_to(map_)
+    os.makedirs("maps", exist_ok=True)
 
-        static_map_path = os.path.join("maps", "location_map.html")
-        map_.save(static_map_path)
-        print(f"Mapa estático criado e salvo como '{static_map_path}'.")
+    map_ = folium.Map(location=[avg_lat, avg_lon], zoom_start=12)
+    for lat, lon in coordinates:
+        folium.CircleMarker(location=[lat, lon], radius=5, color='blue').add_to(map_)
 
-        # Criar o timelapse
-        create_timelapse(coordinates, timestamps)
-    else:
-        print("Nenhuma coordenada encontrada.")
+    map_.save(output_file)
 
-if __name__ == "__main__":
-    main()
+    # Abrir o arquivo gerado no navegador
+    webbrowser.open(f"file://{os.path.abspath(output_file)}")  # Abre no navegador
+
+def run_mapping():
+    file_path = selected_file.get()
+    if not file_path:
+        messagebox.showerror("Erro", "Nenhum arquivo selecionado.")
+        return
+
+    try:
+        coordinates, timestamps = read_coordinates(file_path, include_timestamps=True)
+        if not coordinates:
+            messagebox.showwarning("Aviso", "Nenhuma coordenada foi lida.")
+            return
+
+        create_static_map(coordinates)  # Criar o mapa estático
+        create_timelapse(coordinates, timestamps)  # Criar o timelapse
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao processar o arquivo:\n{str(e)}")
+
+def browse_file():
+    filename = filedialog.askopenfilename(
+        title="Escolha um arquivo CSV",
+        filetypes=[("CSV files", "*.csv")],
+        initialdir="data"
+    )
+    if filename:
+        selected_file.set(filename)
+
+# GUI Setup
+root = tk.Tk()
+root.title("Gerador de Mapas com Folium")
+root.geometry("500x200")
+
+frame = ttk.Frame(root, padding=20)
+frame.pack(fill=tk.BOTH, expand=True)
+
+selected_file = tk.StringVar()
+
+ttk.Label(frame, text="Arquivo CSV:").grid(row=0, column=0, sticky="w")
+ttk.Entry(frame, textvariable=selected_file, width=50).grid(row=0, column=1)
+ttk.Button(frame, text="Procurar", command=browse_file).grid(row=0, column=2, padx=5)
+
+ttk.Button(frame, text="Gerar Mapas", command=run_mapping).grid(row=1, column=1, pady=20)
+
+root.mainloop()
