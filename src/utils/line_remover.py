@@ -27,7 +27,7 @@ def process_csv(file_path, log_widget, preview_widget):
         log_widget.insert(tk.END, "-" * 50 + "\n")
         log_widget.configure(state='disabled')
 
-        # Perguntar ao usuário se deseja remover linhas
+        # Perguntar ao user se deseja remover linhas
         remove_rows = simpledialog.askinteger(
             "Remover Linhas",
             "Deseja remover quantas linhas do início do CSV?",
@@ -49,12 +49,12 @@ def process_csv(file_path, log_widget, preview_widget):
             preview_widget.insert(tk.END, df.to_string(index=False))
             preview_widget.configure(state='disabled')
 
-            # Perguntar ao usuário os nomes das colunas
+            # Perguntar ao utilizador os nomes das colunas
             columns = []
             for i in range(df.shape[1]):
                 column_name = simpledialog.askstring(
                     "Novo Cabeçalho",
-                    f"Qual o nome da coluna {i + 1}?"
+                    f"Indique o nome de todas as colunas: {i + 1}?"
                 )
                 if column_name:
                     columns.append(column_name)

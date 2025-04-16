@@ -1,20 +1,35 @@
-# Location Mapper
+# Location Mapper & Analyzer
 
 This project reads latitude and longitude data from a CSV file and plots the coordinates on an interactive map. The coordinates are displayed in blue for easy visualization. The project also supports filtering data by date and time ranges.
+
+- Filter CSV data
+- Visualize Maps
+- Analyze fuel consumption
+- Remove and restructure invalid CSV
+- Generate suitable graphics
+- Supports all CSV with latitude, longitude, date and time
+
 
 ## Project Structure
 
 ```
 location-mapper
 ├── src
-│   ├── main.py          # Entry point of the application
+│   ├── main.py          # Main interface of the program
 │   ├── utils
-│   │   ├── file_reader.py    # Functions for reading CSV files
-│   │   └── data_filter.py    # Functions for filtering and cleaning data by date and time
+│   │   ├── data_filter.py    # Filtering and cleaning data
+│   │   ├── file_reader.py    # Non-graphical functions for reading CSV files
+│   │   ├── gas_study.py      # Analyze fuel consuption and generates a graph
+│   │   ├── line_remover.py   # Removes unwanted lines and restructure the CSV to filter it later
+│   │   ├── locations_maps.py # Generate a static map and a timelapse map with all locations in the CSV
+│   │   ├── stopping_study.py # Analyze stop points and generates a map illustrating them
+│   │   └──velocity_study.py # Analyze speed patterns and create an graph and a map with speed records
 ├── data
-│   └── coordinates.csv   # CSV file containing latitude, longitude, date, and time data
-├── requirements.txt      # List of dependencies
-└── README.md             # Project documentation
+│   └── test1.csv          # CSV file containing latitude, longitude, date, and time data
+├── maps
+│   └── timelapse_map.html # HTML file with map generated from 'locations_map.py'
+├── requirements.txt       # List of dependencies
+└── README.md              # Project documentation
 ```
 
 ## Requirements
@@ -31,6 +46,17 @@ Dependencies include:
 - matplotlib
 - folium
 - datetime
+- geopy
+- numpy
+- tkintermapview
+- scikit-learn
+- pyproj
+- shapely
+- geopandas
+- seaborn
+- openpyxl
+- xlsxwriter
+- tqdm
 
 ## Usage
 
@@ -44,16 +70,7 @@ python src/main.py
 3. The application will:
   - Read the coordinates from the CSV file.
   - Apply any specified filters.
-  - Plot the filtered data on an interactive map.
-
-### Filtering Data
-
-To filter data, update the following variables in `main.py`:
-
-- `start_date` and `end_date` for date range.
-- `start_time` and `end_time` for time range.
-
-The application will only plot data within the specified ranges.
+  - Plot the filtered data on an interactive map & create graphs.
 
 ## Contributing
 

@@ -5,8 +5,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from datetime import datetime
 
-plt.rcParams["font.size"] = 10  # Ajuste de fonte para legibilidade
-
 def list_csv_files(directory="data"):
     return [f for f in os.listdir(directory) if f.endswith(".csv")]
 
@@ -74,7 +72,7 @@ def run_analysis():
 # GUI
 root = tk.Tk()
 root.title("Analisador de Consumo de Combustível")
-root.geometry("575x350")  # Aumentando o tamanho da janela para acomodar melhor a interface
+root.geometry("575x350")
 root.attributes("-fullscreen", True)
 root.resizable(False, False)
 
@@ -100,7 +98,7 @@ label_description.pack(fill=tk.BOTH, expand=False, padx=0, pady=50)
 
 # Centralizando o frame
 frame = ttk.Frame(root, padding=50)
-frame.pack(expand=False)  # O expand=True ajuda a centralizar o conteúdo
+frame.pack(expand=False)
 
 selected_file = tk.StringVar()
 

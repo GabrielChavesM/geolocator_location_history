@@ -38,7 +38,7 @@ def process_csv(file_path, log_widget, preview_widget):
         df_original = pd.read_csv(file_path)
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao abrir o arquivo CSV: {e}")
-        messagebox.showinfo("Erro", "Open your CSV with 'Error Solver'")
+        messagebox.showinfo("Erro", "Open your CSV with Line_Remover")
         return
 
     rows_before = df_original.shape[0]
@@ -71,12 +71,12 @@ def process_csv(file_path, log_widget, preview_widget):
         df["datetime"] = pd.to_datetime(df[mapped_columns["date"]] + " " + df[mapped_columns["time"]], errors="coerce")
     else:
         messagebox.showerror("Erro", "Não foi possível identificar corretamente as colunas de data e hora.")
-        messagebox.showinfo("Erro", "Open your CSV with 'Error Solver'")
+        messagebox.showinfo("Erro", "Open your CSV with Line_Remover")
         return
 
     if "latitude" not in mapped_columns or "longitude" not in mapped_columns:
         messagebox.showerror("Erro", "Colunas de latitude ou longitude ausentes.")
-        messagebox.showinfo("Erro", "Open your CSV with 'Error Solver'")
+        messagebox.showinfo("Erro", "Open your CSV with Line_Remover")
         return
 
     df = df.rename(columns={

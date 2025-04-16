@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from folium.plugins import HeatMap
-import webbrowser  # Importando para abrir o arquivo no navegador
+import webbrowser
 
 def analyze_speed(csv_path):
     if not csv_path:
@@ -108,10 +108,9 @@ def start_analysis():
 # GUI Setup
 root = tk.Tk()
 root.title("Análise de Velocidade")
-root.attributes("-fullscreen", True)  # Tornando a janela em tela cheia
-root.resizable(False, False)  # Impede o redimensionamento da janela
+root.attributes("-fullscreen", True)
+root.resizable(False, False)
 
-# Adicionando texto explicativo
 description_text = """
 Realize uma análise de velocidade contendo coordenadas geográficas e velocidades.
 
@@ -125,8 +124,7 @@ label_description.pack(fill=tk.BOTH, padx=30, pady=0)
 
 # Frame para a funcionalidade principal
 frame = ttk.Frame(root, padding=0)
-frame.place(relx=0.5, rely=0.5, anchor="center")  # Centraliza o frame na janela
-
+frame.place(relx=0.5, rely=0.5, anchor="center")
 selected_file = tk.StringVar()
 
 ttk.Label(frame, text="Arquivo CSV:").grid(row=0, column=0, sticky="w")

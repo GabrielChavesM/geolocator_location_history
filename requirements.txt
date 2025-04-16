@@ -2,3 +2,12 @@ pandas
 matplotlib
 folium
 numpy
+geopy
+scikit-learn
+pyproj
+shapely
+geopandas
+seaborn
+openpyxl
+tqdm
+tkintermapview

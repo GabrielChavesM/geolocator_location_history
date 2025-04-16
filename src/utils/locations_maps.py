@@ -4,7 +4,7 @@ from tkinter import ttk, filedialog, messagebox
 import folium
 from folium.plugins import TimestampedGeoJson
 from file_reader import read_coordinates
-import webbrowser  # Importando para abrir o arquivo no navegador
+import webbrowser
 
 def create_timelapse(coordinates, timestamps, output_file='maps/timelapse_map.html'):
     if not coordinates or not timestamps:
@@ -35,8 +35,8 @@ def create_timelapse(coordinates, timestamps, output_file='maps/timelapse_map.ht
     timestamped_geojson.add_to(map_)
     map_.save(output_file)
 
-    # Abrir o arquivo gerado no navegador
-    webbrowser.open(f"file://{os.path.abspath(output_file)}")  # Abre no navegador
+    # Abre os mapas no navegador
+    webbrowser.open(f"file://{os.path.abspath(output_file)}")
 
 def create_static_map(coordinates, output_file='maps/location_map.html'):
     if not coordinates:
@@ -55,7 +55,7 @@ def create_static_map(coordinates, output_file='maps/location_map.html'):
     map_.save(output_file)
 
     # Abrir o arquivo gerado no navegador
-    webbrowser.open(f"file://{os.path.abspath(output_file)}")  # Abre no navegador
+    webbrowser.open(f"file://{os.path.abspath(output_file)}")
 
 def run_mapping():
     file_path = selected_file.get()
@@ -86,10 +86,9 @@ def browse_file():
 # GUI Setup
 root = tk.Tk()
 root.title("Gerador de Mapas com Folium")
-root.attributes("-fullscreen", True)  # Torna a janela em tela cheia
-root.resizable(False, False)  # Impede o redimensionamento da janela
+root.attributes("-fullscreen", True)
+root.resizable(False, False)
 
-# Adicionando texto explicativo
 description_text = """
 Com esta funcionalidade gerar dois tipos de mapas a partir de um arquivo CSV contendo coordenadas geográficas.
 
@@ -108,7 +107,7 @@ label_description.pack(fill=tk.BOTH, padx=30, pady=20)
 
 # Frame para centralizar a funcionalidade principal
 frame = ttk.Frame(root, padding=0)
-frame.place(relx=0.5, rely=0.5, anchor="center")  # Centraliza o frame na janela
+frame.place(relx=0.5, rely=0.5, anchor="center")
 
 selected_file = tk.StringVar()
 
