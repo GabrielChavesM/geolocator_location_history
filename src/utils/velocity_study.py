@@ -108,10 +108,24 @@ def start_analysis():
 # GUI Setup
 root = tk.Tk()
 root.title("Análise de Velocidade")
-root.geometry("520x180")
+root.attributes("-fullscreen", True)  # Tornando a janela em tela cheia
+root.resizable(False, False)  # Impede o redimensionamento da janela
 
-frame = ttk.Frame(root, padding=20)
-frame.pack(fill=tk.BOTH, expand=True)
+# Adicionando texto explicativo
+description_text = """
+Realize uma análise de velocidade contendo coordenadas geográficas e velocidades.
+
+Instruções:
+- Selecione um arquivo CSV filtrado.
+- Clique em "Analisar Velocidade" para gerar gráficos e mapas de alta e baixa velocidade.
+"""
+
+label_description = tk.Label(root, text=description_text, font=("Arial", 18), justify="left", padx=10, pady=150)
+label_description.pack(fill=tk.BOTH, padx=30, pady=0)
+
+# Frame para a funcionalidade principal
+frame = ttk.Frame(root, padding=0)
+frame.place(relx=0.5, rely=0.5, anchor="center")  # Centraliza o frame na janela
 
 selected_file = tk.StringVar()
 

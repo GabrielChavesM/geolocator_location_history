@@ -93,10 +93,24 @@ def start_analysis():
 # GUI Setup
 root = tk.Tk()
 root.title("Analisador de Paradas (Velocidade Zero)")
-root.geometry("500x180")
+root.attributes("-fullscreen", True)  # Tornando a janela em tela cheia
+root.resizable(False, False)  # Impede o redimensionamento da janela
 
-frame = ttk.Frame(root, padding=20)
-frame.pack(fill=tk.BOTH, expand=True)
+# Adicionando texto explicativo
+description_text = """
+Identifique locais onde a velocidade estve parado por mais de 5 minutos.
+
+Instruções:
+- Selecione um arquivo CSV filtrado.
+- Clique em "Analisar Paradas" para gerar um mapa com as paradas e um gráfico com os horários.
+"""
+
+label_description = tk.Label(root, text=description_text, font=("Arial", 18), justify="left", padx=10, pady=150)
+label_description.pack(fill=tk.BOTH, padx=30, pady=0)
+
+# Frame para a funcionalidade principal
+frame = ttk.Frame(root, padding=0)
+frame.place(relx=0.5, rely=0.5, anchor="center")  # Centraliza o frame na janela
 
 selected_file = tk.StringVar()
 

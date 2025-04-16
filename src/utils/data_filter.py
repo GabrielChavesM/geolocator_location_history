@@ -34,7 +34,13 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * c
 
 def process_csv(file_path, log_widget, preview_widget):
-    df_original = pd.read_csv(file_path)
+    try:
+        df_original = pd.read_csv(file_path)
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro ao abrir o arquivo CSV: {e}")
+        messagebox.showinfo("Erro", "Open your CSV with 'Error Solver'")
+        return
+
     rows_before = df_original.shape[0]
     columns_before = df_original.shape[1]
 
@@ -65,10 +71,12 @@ def process_csv(file_path, log_widget, preview_widget):
         df["datetime"] = pd.to_datetime(df[mapped_columns["date"]] + " " + df[mapped_columns["time"]], errors="coerce")
     else:
         messagebox.showerror("Erro", "Não foi possível identificar corretamente as colunas de data e hora.")
+        messagebox.showinfo("Erro", "Open your CSV with 'Error Solver'")
         return
 
     if "latitude" not in mapped_columns or "longitude" not in mapped_columns:
         messagebox.showerror("Erro", "Colunas de latitude ou longitude ausentes.")
+        messagebox.showinfo("Erro", "Open your CSV with 'Error Solver'")
         return
 
     df = df.rename(columns={
@@ -145,8 +153,10 @@ def main_gui():
     root = tk.Tk()
     root.title("Processador de CSV - Limpeza e Estatísticas")
     root.geometry("800x600")
+    root.attributes("-fullscreen", True)
+    root.resizable(False, False)
 
-    label = tk.Label(root, text="Selecione o arquivo CSV:", font=("Arial", 12))
+    label = tk.Label(root, text="Selecione um arquivo CSV para filtragem:", font=("Arial", 12))
     label.pack(pady=10)
 
     csv_files = list_csv_files()
@@ -172,8 +182,9 @@ def main_gui():
         else:
             messagebox.showwarning("Aviso", "Por favor, selecione um arquivo.")
 
+    # Centralizando o botão na tela
     button = tk.Button(root, text="Processar CSV", command=on_process, font=("Arial", 11))
-    button.pack(pady=10)
+    button.place(relx=0.5, rely=0.5, anchor="center")
 
     root.mainloop()
 

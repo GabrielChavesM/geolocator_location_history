@@ -50,11 +50,28 @@ def execute_script_in_thread(script_path, output_callback):
     # Inicia a execução em uma thread para não bloquear a interface
     threading.Thread(target=run_script, daemon=True).start()
 
+def get_pretty_script_name(script_name):
+    """
+    Converte o nome do script para um nome mais legível.
+    """
+    name_map = {
+        "gas_study.py": "Estudo de Gasto de Combustível",
+        "stopping_study.py": "Estudo de Tempo Parado",
+        "data_filter.py": "Filtragem de Dados",
+        "locations_maps.py": "Mapas de Localizações",
+        "line_remover.py": "Remoção de Linhas",
+        "velocity_study.py": "Estudo de Velocidade",
+    }
+    # Se o nome não for mapeado, retorna o nome original sem a extensão .py
+    return name_map.get(script_name, script_name.replace(".py", "").replace("_", " ").title())
+
 class ScriptSelectorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Selecionar e Executar Script")
-        self.root.geometry("800x400")
+        self.root.geometry("900x500")
+        root.attributes("-fullscreen", True)
+        root.resizable(False, False)
 
         self.selected_script = None
 
@@ -62,29 +79,63 @@ class ScriptSelectorApp:
         self.paned_window = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
         self.paned_window.pack(fill=tk.BOTH, expand=True)
 
-        # Frame da lista de scripts (coluna da esquerda)
+        # Frame da área de texto estático (coluna da esquerda)
         self.left_frame = ttk.Frame(self.paned_window, padding=20)
         self.paned_window.add(self.left_frame, weight=1)  # weight define como o espaço é distribuído
 
-        self.listbox = tk.Listbox(self.left_frame, width=40, height=20, selectmode=tk.SINGLE)
+        # Descrição estilizada
+        self.lorem_text = tk.Label(self.left_frame, text=""" 
+        Gas Study:
+        - Estudo sobre o gasto com combustível de um veículo.
+                                   
+        Stopping Study:
+        - Estudo sobre o tempo parado do utilizador.
+                                   
+        Data Filter:
+        - Filtragem dos dados e criação de novas estatísticas.
+                                   
+        Locations Maps:
+        - Criação de mapas com as localizações dos dados.
+                                   
+        Line Remover:
+        - Remoção de linhas inválidas do CSV.
+                                   
+        Velocity Study:
+        - Estudo sobre a velocidade do utilizador.
+        """, 
+        font=("Arial", 18), justify=tk.LEFT, anchor="nw", padx=8, pady=40)
+        
+        self.lorem_text.pack(fill=tk.BOTH, expand=True)
+
+        # Frame da lista de scripts e execução (coluna da direita)
+        self.right_frame = ttk.Frame(self.paned_window, padding=20)
+        self.paned_window.add(self.right_frame, weight=3)  # weight define como o espaço é distribuído
+
+        # Frame da listagem de scripts e botão de execução
+        self.listbox_frame = ttk.Frame(self.right_frame)
+        self.listbox_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Aumentando o tamanho da fonte para os scripts
+        self.listbox = tk.Listbox(self.listbox_frame, width=40, height=20, selectmode=tk.SINGLE, font=("Arial", 24))
         self.listbox.pack(fill=tk.BOTH, expand=True)
 
         self.load_scripts()
 
-        self.run_button = ttk.Button(self.left_frame, text="Executar Script", command=self.run_script)
+        self.run_button = ttk.Button(self.listbox_frame, text="Executar Script", command=self.run_script, style="TButton")
         self.run_button.pack(pady=10)
 
-        # Frame para exibir as mensagens de execução (coluna da direita)
-        self.right_frame = ttk.Frame(self.paned_window, padding=20)
-        self.paned_window.add(self.right_frame, weight=3)  # weight define como o espaço é distribuído
-
-        # Aqui você pode colocar uma área de texto para exibir a saída do script
+        # Frame para exibir as mensagens de execução
         self.script_output_frame = tk.Frame(self.right_frame)
         self.script_output_frame.pack(fill=tk.BOTH, expand=True)
 
         # Widget de texto para exibir a saída do script
-        self.output_text = tk.Text(self.script_output_frame, wrap=tk.WORD, height=15, width=80)
+        self.output_text = tk.Text(self.script_output_frame, wrap=tk.WORD, height=15, width=80, font=("Courier", 10))
         self.output_text.pack(fill=tk.BOTH, expand=True)
+
+        # Estilo para o botão
+        style = ttk.Style()
+        style.configure("TButton", padding=6, relief="flat", background="#4CAF50", font=("Arial", 12))
+        style.map("TButton", background=[("active", "#45a049")])
 
     def load_scripts(self):
         """
@@ -92,11 +143,12 @@ class ScriptSelectorApp:
         """
         self.scripts = list_available_scripts()
 
-        # Limpa a listbox e adiciona os scripts
+        # Limpa a listbox e adiciona os scripts com nomes bonitos
         self.listbox.delete(0, tk.END)
         for i, script_path in self.scripts.items():
             script_name = os.path.basename(script_path)
-            self.listbox.insert(tk.END, script_name)
+            pretty_name = get_pretty_script_name(script_name)
+            self.listbox.insert(tk.END, pretty_name)
 
     def run_script(self):
         """
@@ -109,7 +161,6 @@ class ScriptSelectorApp:
                 messagebox.showwarning("Seleção", "Por favor, selecione um script da lista.")
                 return
 
-            script_name = self.listbox.get(selection[0])
             # Encontra a chave correta no dicionário self.scripts usando o índice da listbox
             script_index = list(self.scripts.keys())[selection[0]]
             script_path = self.scripts[script_index]
@@ -118,7 +169,7 @@ class ScriptSelectorApp:
             self.output_text.delete(1.0, tk.END)
 
             # Exibe uma label dizendo que o script está sendo executado
-            label = tk.Label(self.script_output_frame, text=f"Executando {script_name}...", font=("Arial", 14))
+            label = tk.Label(self.script_output_frame, text=f"Executando {os.path.basename(script_path)}...", font=("Arial", 14, "italic"))
             label.pack()
 
             # Executa o script e redireciona a saída para a área de texto

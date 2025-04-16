@@ -86,10 +86,29 @@ def browse_file():
 # GUI Setup
 root = tk.Tk()
 root.title("Gerador de Mapas com Folium")
-root.geometry("500x200")
+root.attributes("-fullscreen", True)  # Torna a janela em tela cheia
+root.resizable(False, False)  # Impede o redimensionamento da janela
 
-frame = ttk.Frame(root, padding=20)
-frame.pack(fill=tk.BOTH, expand=True)
+# Adicionando texto explicativo
+description_text = """
+Com esta funcionalidade gerar dois tipos de mapas a partir de um arquivo CSV contendo coordenadas geográficas.
+
+1. Mapa Estático: Mostra os pontos representados pelas coordenadas em um mapa.
+2. Timelapse: Cria um mapa interativo, mostrando um caminho de movimentação ao longo do tempo.
+
+Instruções:
+- Selecione um arquivo CSV contendo coordenadas geográficas (latitude, longitude) e timestamps.
+- Clique em "Gerar Mapas" para criar o mapa estático e o timelapse.
+
+[Recomenda-se filtrar os dados antes de usar esta funcionalidade]
+"""
+
+label_description = tk.Label(root, text=description_text, font=("Arial", 18), justify="center", padx=10, pady=20)
+label_description.pack(fill=tk.BOTH, padx=30, pady=20)
+
+# Frame para centralizar a funcionalidade principal
+frame = ttk.Frame(root, padding=0)
+frame.place(relx=0.5, rely=0.5, anchor="center")  # Centraliza o frame na janela
 
 selected_file = tk.StringVar()
 

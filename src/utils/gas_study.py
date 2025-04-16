@@ -74,10 +74,33 @@ def run_analysis():
 # GUI
 root = tk.Tk()
 root.title("Analisador de Consumo de Combustível")
-root.geometry("575x175")
+root.geometry("575x350")  # Aumentando o tamanho da janela para acomodar melhor a interface
+root.attributes("-fullscreen", True)
+root.resizable(False, False)
 
-frame = ttk.Frame(root, padding=20)
-frame.pack(fill=tk.BOTH, expand=True)
+# Adicionando o tutorial/descrição
+description = """
+Aqui pode analisar dados de consumo de combustível registrados em um arquivo CSV. 
+Através dos dados de distância percorrida e tempo, ele calcula o consumo total de combustível e o custo 
+acumulado ao longo do tempo, considerando o consumo de combustível e o preço fornecido pelo utilizador. 
+Além disso, exibe um gráfico com o custo acumulado ao longo do tempo.
+
+Instruções:
+1. Selecione um arquivo CSV contendo as colunas 'distance_in_m' (distância em metros) e 'time' (tempo).
+2. Informe o consumo do veículo (km/l) e o preço do combustível (€/l).
+3. Clique em "Analisar" para visualizar os resultados e o gráfico de custo acumulado.
+
+Entre com os dados no formulário abaixo e clique em "Analisar" para começar a análise.
+
+[Recomenda-se filtrar os dados antes de usar esta funcionalidade]
+"""
+
+label_description = tk.Label(root, text=description, font=("Arial", 18), justify="left", padx=0, pady=5)
+label_description.pack(fill=tk.BOTH, expand=False, padx=0, pady=50)
+
+# Centralizando o frame
+frame = ttk.Frame(root, padding=50)
+frame.pack(expand=False)  # O expand=True ajuda a centralizar o conteúdo
 
 selected_file = tk.StringVar()
 
